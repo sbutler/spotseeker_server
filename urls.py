@@ -29,6 +29,7 @@ from spotseeker_server.views.image import ImageView
 from spotseeker_server.views.thumbnail import ThumbnailView
 from spotseeker_server.views.null import NullView
 from spotseeker_server.views.all_spots import AllSpotsView
+from spotseeker_server.views.schema_gen import SchemaGenView
 
 urlpatterns = patterns('',
     url(r'v1/null$', NullView().run),
@@ -36,7 +37,7 @@ urlpatterns = patterns('',
     url(r'v1/spot/?$', SearchView().run, name='spot-search'),
     url(r'v1/spot/all$', AllSpotsView().run, name='spots'),
     url(r'v1/buildings/?$', BuildingListView().run, name='buildings'),
-    url(r'v1/schema$', 'spotseeker_server.views.schema_gen.schema_gen', name='schema'),
+    url(r'v1/schema$', SchemaGenView().run, name='schema'),
     url(r'v1/spot/(?P<spot_id>\d+)/image$', AddImageView().run),
     url(r'v1/spot/(?P<spot_id>\d+)/image/(?P<image_id>\d+)$', ImageView().run, name='spot-image'),
     url(r'v1/spot/(?P<spot_id>\d+)/image/(?P<image_id>\d+)/thumb/constrain/(?P<thumb_dimensions>.+)?$', ThumbnailView().run, {'constrain': True}),

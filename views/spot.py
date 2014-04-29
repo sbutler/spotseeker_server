@@ -31,6 +31,7 @@ import simplejson as json
 import django.dispatch
 from spotseeker_server.dispatch import spot_pre_build, spot_pre_save, spot_post_save, spot_post_build
 
+
 @django.dispatch.receiver(spot_pre_save, dispatch_uid='spotseeker_server.views.spot.build_available_hours')
 def _build_available_hours(sender, **kwargs):
     """Save the available hours for later"""
@@ -51,13 +52,13 @@ def _build_extended_info(sender, **kwargs):
     if new_extended_info is not None:
         for key in new_extended_info.keys():
             value = new_extended_info[key]
-            if value is None or str(value) == '':
+            if value is None or unicode(value) == '':
                 del new_extended_info[key]
 
     old_extended_info = {}
     if spot is not None:
         old_extended_info = dict((ei.key, ei.value) for ei in spot.spotextendedinfo_set.all())
-    
+
     stash['new_extended_info'] = new_extended_info
     stash['old_extended_info'] = old_extended_info
 
@@ -70,7 +71,7 @@ def _save_available_hours(sender, **kwargs):
     stash = kwargs['stash']
 
     available_hours = stash['available_hours']
-    
+
     if partial_update and available_hours is None:
         return
 
@@ -84,10 +85,10 @@ def _save_available_hours(sender, **kwargs):
             day_hours = available_hours[day[1]]
             for window in day_hours:
                 SpotAvailableHours.objects.create(
-                        spot=spot,
-                        day=day[0],
-                        start_time=window[0],
-                        end_time=window[1]
+                    spot=spot,
+                    day=day[0],
+                    start_time=window[0],
+                    end_time=window[1]
                 )
 
 
@@ -118,10 +119,10 @@ def _save_extended_info(sender, **kwargs):
                 else:
                     ei = SpotExtendedInfo.objects.get(spot=spot, key=key)
 
-            eiform = SpotExtendedInfoForm({'spot':spot.pk, 'key':key, 'value':value}, instance=ei)
+            eiform = SpotExtendedInfoForm({'spot': spot.pk, 'key': key, 'value': value}, instance=ei)
             if not eiform.is_valid():
                 raise RESTFormInvalidError(eiform)
-            
+
             ei = eiform.save()
         # Now loop over the different in the keys and remove old
         # items that aren't present in the new set
@@ -143,7 +144,7 @@ class SpotView(RESTDispatch):
     """
     @app_auth_required
     def GET(self, request, spot_id):
-        spot = Spot.objects.get_with_external(spot_id)
+        spot = Spot.get_with_external(spot_id)
         response = JSONResponse(spot.json_data_structure())
         response["ETag"] = spot.etag
         return response
@@ -154,7 +155,7 @@ class SpotView(RESTDispatch):
 
     @user_auth_required
     def PUT(self, request, spot_id):
-        spot = Spot.objects.get_with_external(spot_id)
+        spot = Spot.get_with_external(spot_id)
 
         self.validate_etag(request, spot)
 
@@ -162,7 +163,7 @@ class SpotView(RESTDispatch):
 
     @user_auth_required
     def DELETE(self, request, spot_id):
-        spot = Spot.objects.get_with_external(spot_id)
+        spot = Spot.get_with_external(spot_id)
 
         self.validate_etag(request, spot)
 
@@ -185,28 +186,28 @@ class SpotView(RESTDispatch):
         is_new = spot is None
 
         spot_pre_build.send(
-                sender=SpotForm,
-                request=request,
-                json_values=json_values,
-                spot=spot,
-                partial_update=partial_update,
-                stash=stash
+            sender=SpotForm.implementation(),
+            request=request,
+            json_values=json_values,
+            spot=spot,
+            partial_update=partial_update,
+            stash=stash
         )
 
         self._build_spot_types(json_values, spot, partial_update)
         self._build_spot_location(json_values)
 
         spot_pre_save.send(
-                sender=SpotForm,
-                request=request,
-                json_values=json_values,
-                spot=spot,
-                partial_update=partial_update,
-                stash=stash
+            sender=SpotForm.implementation(),
+            request=request,
+            json_values=json_values,
+            spot=spot,
+            partial_update=partial_update,
+            stash=stash
         )
 
         # Remve excluded fields
-        excludefields = set(SpotForm.Meta.exclude)
+        excludefields = set(SpotForm.implementation().Meta.exclude)
         for fieldname in excludefields:
             if fieldname in json_values:
                 del json_values[fieldname]
@@ -230,12 +231,15 @@ class SpotView(RESTDispatch):
         spot = form.save()
 
         spot_post_save.send(
-                sender=SpotForm,
-                request=request,
-                spot=spot,
-                partial_update=partial_update,
-                stash=stash
+            sender=SpotForm.implementation(),
+            request=request,
+            spot=spot,
+            partial_update=partial_update,
+            stash=stash
         )
+
+        # gets the current etag
+        spot = Spot.get_with_external(spot.pk)
 
         if is_new:
             response = HttpResponse(status=201)
@@ -245,12 +249,12 @@ class SpotView(RESTDispatch):
         response["ETag"] = spot.etag
 
         spot_post_build.send(
-                sender=SpotForm,
-                request=request,
-                response=response,
-                spot=spot,
-                partial_update=partial_update,
-                stash=stash
+            sender=SpotForm.implementation(),
+            request=request,
+            response=response,
+            spot=spot,
+            partial_update=partial_update,
+            stash=stash
         )
 
         return response
@@ -273,7 +277,8 @@ class SpotView(RESTDispatch):
         if not partial_update or (partial_update and types is not None):
             json_values['spottypes'] = []
             for name in types:
-                t = SpotType.objects.get(name=name)
-                json_values['spottypes'].append(t.pk)
-
-
+                try:
+                    t = SpotType.objects.get(name=name)
+                    json_values['spottypes'].append(t.pk)
+                except:
+                    pass
