@@ -16,7 +16,7 @@
 from django.test import TransactionTestCase
 from django.conf import settings
 from django.test.client import Client
-from spotseeker_server.models import Spot
+from spotseeker_server.models import Spot, SpotExtendedInfo
 import simplejson as json
 import random
 from django.test.utils import override_settings
@@ -24,18 +24,17 @@ from mock import patch
 from django.core import cache
 from spotseeker_server import models
 
-from spotseeker_server.org_forms.uw_spot import UWSpotForm, UWSpotExtendedInfoForm
-
 
 @override_settings(SPOTSEEKER_AUTH_MODULE='spotseeker_server.auth.all_ok')
-@patch('spotseeker_server.views.spot.SpotForm', UWSpotForm)
-@patch('spotseeker_server.views.spot.SpotExtendedInfoForm', UWSpotExtendedInfoForm)
+@override_settings(SPOTSEEKER_SPOT_FORM='spotseeker_server.org_forms.uw_spot.UWSpotForm')
+@override_settings(SPOTSEEKER_SPOTEXTENDEDINFO_FORM='spotseeker_server.org_forms.uw_spot.UWSpotExtendedInfoForm')
 class UWSpotPUTTest(TransactionTestCase):
     """ Tests updating Spot information via PUT.
     """
 
     def setUp(self):
         spot = Spot.objects.create(name="This is for testing PUT")
+        SpotExtendedInfo.objects.create(spot=spot, key="aw_yisss", value="breadcrumbs")
         spot.save()
         self.spot = spot
 

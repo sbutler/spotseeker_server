@@ -25,6 +25,7 @@
 
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.core.validators import validate_slug
 from django.core.files.uploadedfile import UploadedFile
 from django.core.urlresolvers import reverse
 import hashlib
@@ -39,9 +40,6 @@ from django.core.cache import cache
 import re
 from functools import wraps
 
-def validate_external_id(external_id):
-    if external_id is not None and not re.match(r'^[\w-]*$', str(external_id)):
-        raise ValidationError("External ID must only be letters, numbers, underscores, and hyphens")
 
 def update_etag(func):
     """Any model with an ETag can decorate an instance method with
@@ -62,23 +60,11 @@ class SpotType(models.Model):
         return self.name
 
 
-class SpotManager(models.Manager):
-    """ Adds methods specifically for fetching spots.
-    """
-    def get_with_external(self, spot_id):
-        if spot_id and str(spot_id).startswith('external:'):
-            return self.get(external_id=spot_id[9:])
-        else:
-            return self.get(pk=spot_id)
-
-
 class Spot(models.Model):
     """ Represents a place for students to study.
     """
-    objects = SpotManager()
-
     name = models.CharField(max_length=100, blank=True)
-    spottypes = models.ManyToManyField(SpotType, max_length=50, related_name='spots', blank=True)
+    spottypes = models.ManyToManyField(SpotType, max_length=50, related_name='spots', blank=True, null=True)
     latitude = models.DecimalField(max_digits=11, decimal_places=8, null=True)
     longitude = models.DecimalField(max_digits=11, decimal_places=8, null=True)
     height_from_sea_level = models.DecimalField(max_digits=11, decimal_places=8, null=True, blank=True)
@@ -91,7 +77,7 @@ class Spot(models.Model):
     manager = models.CharField(max_length=50, blank=True)
     etag = models.CharField(max_length=40)
     last_modified = models.DateTimeField(auto_now=True, auto_now_add=True)
-    external_id = models.CharField(max_length=100, null=True, blank=True, default=None, unique=True, validators=[validate_external_id])
+    external_id = models.CharField(max_length=100, null=True, blank=True, default=None, unique=True, validators=[validate_slug])
 
     def __unicode__(self):
         return self.name
@@ -127,12 +113,17 @@ class Spot(models.Model):
             for window in hours:
                 available_hours[window.get_day_display()].append(window.json_data_structure())
 
-            images = [img.json_data_structure() for img in SpotImage.objects.filter(spot=self)]
-            types = [t.name for t in self.spottypes.all()]
+            images = []
+            for img in SpotImage.objects.filter(spot=self):
+                images.append(img.json_data_structure())
+            types = []
+            for t in self.spottypes.all():
+                types.append(t.name)
 
             spot_json = {
                 "id": self.pk,
                 "uri": self.rest_url(),
+                "etag": self.etag,
                 "name": self.name,
                 "type": types,
                 "location": {
@@ -161,6 +152,13 @@ class Spot(models.Model):
     def delete(self, *args, **kwargs):
         cache.delete(self.pk)
         super(Spot, self).delete(*args, **kwargs)
+
+    @staticmethod
+    def get_with_external(spot_id):
+        if spot_id and str(spot_id).startswith('external:'):
+            return Spot.objects.get(external_id=spot_id[9:])
+        else:
+            return Spot.objects.get(pk=spot_id)
 
 
 class SpotAvailableHours(models.Model):
@@ -230,9 +228,9 @@ class SpotImage(models.Model):
     """ An image of a Spot. Multiple images can be associated with a Spot, and Spot objects have a 'Spot.spotimage_set' method that will return all SpotImage objects for the Spot.
     """
     CONTENT_TYPES = {
-            "JPEG": "image/jpeg",
-            "GIF": "image/gif",
-            "PNG": "image/png",
+        "JPEG": "image/jpeg",
+        "GIF": "image/gif",
+        "PNG": "image/png",
     }
 
     description = models.CharField(max_length=200, blank=True)
@@ -255,18 +253,18 @@ class SpotImage(models.Model):
 
     def json_data_structure(self):
         return {
-                "id": self.pk,
-                "url": self.rest_url(),
-                "content-type": self.content_type,
-                "width": self.width,
-                "height": self.height,
-                "creation_date": self.creation_date.isoformat(),
-                "modification_date": self.modification_date.isoformat(),
-                "upload_user": self.upload_user,
-                "upload_application": self.upload_application,
-                "thumbnail_root": reverse('spot-image-thumb', kwargs={'spot_id': self.spot.pk, 'image_id': self.pk}).rstrip('/'),
-                "description": self.description
-                }
+            "id": self.pk,
+            "url": self.rest_url(),
+            "content-type": self.content_type,
+            "width": self.width,
+            "height": self.height,
+            "creation_date": self.creation_date.isoformat(),
+            "modification_date": self.modification_date.isoformat(),
+            "upload_user": self.upload_user,
+            "upload_application": self.upload_application,
+            "thumbnail_root": reverse('spot-image-thumb', kwargs={'spot_id': self.spot.pk, 'image_id': self.pk}).rstrip('/'),
+            "description": self.description
+        }
 
     @update_etag
     def save(self, *args, **kwargs):
