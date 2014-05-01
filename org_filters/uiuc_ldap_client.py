@@ -153,7 +153,7 @@ def get_res_street_address(eppn):
     for the student, if they have one.'''
     full_address = ''
     raw_data = get_person_ad_data(eppn)
-    if raw_data:
+    if len(raw_data) != 0:
         address_keys = [
                  'uiucEduResHallAddressLine1',
                  'uiucEduResHallAddressLine2',
@@ -210,15 +210,19 @@ def get_person_ad_data(eppn):
     if len(results) > 1:
         LOGGER.warning("More than one ad_data for person search.")
 
+    if len(results) <= 0:
+        LOGGER.warning("No ad_data for person search.")
+        return None
+        
     results = results[0][1]
     
     for fieldname in results.keys():
         # Checkf for 0 length values and delete those
-        if not results[fieldname]:
+        if len(results[fieldname]) == 0:
             LOGGER.warn("%s returned with length zero from AD. It will not be available in the templates.", fieldname)
             del results[fieldname]
 
-    if not results:
+    if len(results) <= 0:
         LOGGER.debug("No AD return data.")
         return None
 
