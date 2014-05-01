@@ -34,7 +34,6 @@ class SpotSearchDistanceTest(TestCase):
             c = Client()
             response = c.get("/api/v1/spot", {'center_latitude': "bad_data", 'center_longitude': -40, 'distance': 10})
             self.assertEquals(response.status_code, 200, "Accepts a query with bad latitude")
-            self.assertEquals(response["Content-Type"], "application/json", "Has the json header")
             self.assertEquals(response.content, '[]', "Should return no matches")
 
     def test_invalid_longitude(self):
@@ -43,7 +42,6 @@ class SpotSearchDistanceTest(TestCase):
             c = Client()
             response = c.get("/api/v1/spot", {'center_latitude': "30", 'center_longitude': "bad_data", 'distance': "10"})
             self.assertEquals(response.status_code, 200, "Accepts a query with bad longitude")
-            self.assertEquals(response["Content-Type"], "application/json", "Has the json header")
             self.assertEquals(response.content, '[]', "Should return no matches")
 
     def test_invalid_height(self):
@@ -52,7 +50,6 @@ class SpotSearchDistanceTest(TestCase):
             c = Client()
             response = c.get("/api/v1/spot", {'center_latitude': "30", 'center_longitude': -40, 'height_from_sea_level': "bad_data", 'distance': "10"})
             self.assertEquals(response.status_code, 200, "Accepts a query with bad height")
-            self.assertEquals(response["Content-Type"], "application/json", "Has the json header")
             self.assertEquals(response.content, '[]', "Should return no matches")
 
     def test_invalid_distance(self):
@@ -61,7 +58,6 @@ class SpotSearchDistanceTest(TestCase):
             c = Client()
             response = c.get("/api/v1/spot", {'center_latitude': "30", 'center_longitude': "-40", 'distance': "bad_data"})
             self.assertEquals(response.status_code, 200, "Accepts a query with bad distance")
-            self.assertEquals(response["Content-Type"], "application/json", "Has the json header")
             self.assertEquals(response.content, '[]', "Should return no matches")
 
     def test_large_longitude(self):
@@ -70,7 +66,6 @@ class SpotSearchDistanceTest(TestCase):
             c = Client()
             response = c.get("/api/v1/spot", {'center_latitude': 30, 'center_longitude': 190, 'distance': 10})
             self.assertEquals(response.status_code, 200, "Accepts a query with too large longitude")
-            self.assertEquals(response["Content-Type"], "application/json", "Has the json header")
             self.assertEquals(response.content, '[]', "Should return no matches")
 
     def test_large_latitude(self):
@@ -79,7 +74,6 @@ class SpotSearchDistanceTest(TestCase):
             c = Client()
             response = c.get("/api/v1/spot", {'center_latitude': 100, 'center_longitude': -40, 'distance': 10})
             self.assertEquals(response.status_code, 200, "Accepts a query with too large latitude")
-            self.assertEquals(response["Content-Type"], "application/json", "Has the json header")
             self.assertEquals(response.content, '[]', "Should return no matches")
 
     def test_large_negative_latitude(self):
@@ -88,7 +82,6 @@ class SpotSearchDistanceTest(TestCase):
             c = Client()
             response = c.get("/api/v1/spot", {'center_latitude': -100, 'center_longitude': -40, 'distance': 10})
             self.assertEquals(response.status_code, 200, "Accepts a query with too negative latitude")
-            self.assertEquals(response["Content-Type"], "application/json", "Has the json header")
             self.assertEquals(response.content, '[]', "Should return no matches")
 
     def test_large_negative_longitude(self):
@@ -97,7 +90,6 @@ class SpotSearchDistanceTest(TestCase):
             c = Client()
             response = c.get("/api/v1/spot", {'center_latitude': 40, 'center_longitude': -190, 'distance': 10})
             self.assertEquals(response.status_code, 200, "Accepts a query with too negative longitude")
-            self.assertEquals(response["Content-Type"], "application/json", "Has the json header")
             self.assertEquals(response.content, '[]', "Should return no matches")
 
     def test_no_params(self):
@@ -106,7 +98,6 @@ class SpotSearchDistanceTest(TestCase):
             c = Client()
             response = c.get("/api/v1/spot", {})
             self.assertEquals(response.status_code, 200, "Accepts a query with no params")
-            self.assertEquals(response["Content-Type"], "application/json", "Has the json header")
             self.assertEquals(response.content, '[]', "Should return no matches")
 
     def test_distances(self):
@@ -158,13 +149,11 @@ class SpotSearchDistanceTest(TestCase):
             c = Client()
             response = c.get("/api/v1/spot", {'center_latitude': center_lat, 'center_longitude': center_long, 'distance': 1})
             self.assertEquals(response.status_code, 200, "Accepts a query with no matches")
-            self.assertEquals(response["Content-Type"], "application/json", "Has the json header")
             self.assertEquals(response.content, '[]', "Should return no matches")
 
             # Testing the inner ring
             response = c.get("/api/v1/spot", {'center_latitude': center_lat, 'center_longitude': center_long, 'distance': 12})
             self.assertEquals(response.status_code, 200, "Accepts the distance query")
-            self.assertEquals(response["Content-Type"], "application/json", "Has the json header")
             spots = json.loads(response.content)
             self.assertEquals(len(spots), 4, "Returns 4 spots")
             spot_ids = {
@@ -180,7 +169,6 @@ class SpotSearchDistanceTest(TestCase):
             # Testing the mid ring
             response = c.get("/api/v1/spot", {'center_latitude': center_lat, 'center_longitude': center_long, 'distance': 60})
             self.assertEquals(response.status_code, 200, "Accepts the distance query")
-            self.assertEquals(response["Content-Type"], "application/json", "Has the json header")
             spots = json.loads(response.content)
             self.assertEquals(len(spots), 8, "Returns 8 spots")
             spot_ids = {
@@ -200,7 +188,6 @@ class SpotSearchDistanceTest(TestCase):
             # Testing the outer ring
             response = c.get("/api/v1/spot", {'center_latitude': center_lat, 'center_longitude': center_long, 'distance': 110})
             self.assertEquals(response.status_code, 200, "Accepts the distance query")
-            self.assertEquals(response["Content-Type"], "application/json", "Has the json header")
             spots = json.loads(response.content)
             self.assertEquals(len(spots), 12, "Returns 12 spots")
             spot_ids = {
@@ -224,7 +211,6 @@ class SpotSearchDistanceTest(TestCase):
             # testing a limit - should get the inner 4, and any 2 of the mid
             response = c.get("/api/v1/spot", {'center_latitude': center_lat, 'center_longitude': center_long, 'distance': 60, 'limit': 6})
             self.assertEquals(response.status_code, 200, "Accepts the distance query")
-            self.assertEquals(response["Content-Type"], "application/json", "Has the json header")
             spots = json.loads(response.content)
             self.assertEquals(len(spots), 6, "Returns 6 spots")
             spot_ids = {
@@ -249,7 +235,6 @@ class SpotSearchDistanceTest(TestCase):
             # Testing limits - should get all of the inner and mid, but no outer spots
             response = c.get("/api/v1/spot", {'center_latitude': center_lat, 'center_longitude': center_long, 'distance': 101, 'limit': 8})
             self.assertEquals(response.status_code, 200, "Accepts the distance query")
-            self.assertEquals(response["Content-Type"], "application/json", "Has the json header")
             spots = json.loads(response.content)
             self.assertEquals(len(spots), 8, "Returns 8 spots")
             spot_ids = {
@@ -269,7 +254,6 @@ class SpotSearchDistanceTest(TestCase):
             # Testing limits - should get all inner and mid spots, and 2 outer spots
             response = c.get("/api/v1/spot", {'center_latitude': center_lat, 'center_longitude': center_long, 'distance': 101, 'limit': 10})
             self.assertEquals(response.status_code, 200, "Accepts the distance query")
-            self.assertEquals(response["Content-Type"], "application/json", "Has the json header")
             spots = json.loads(response.content)
             self.assertEquals(len(spots), 10, "Returns 10 spots")
             spot_ids = {
@@ -303,7 +287,6 @@ class SpotSearchDistanceTest(TestCase):
             # Testing that limit 0 = no limit - get all 12 spots
             response = c.get("/api/v1/spot", {'center_latitude': center_lat, 'center_longitude': center_long, 'distance': 110, 'limit': 0})
             self.assertEquals(response.status_code, 200, "Accepts the distance query")
-            self.assertEquals(response["Content-Type"], "application/json", "Has the json header")
             spots = json.loads(response.content)
             self.assertEquals(len(spots), 12, "Returns 12 spots with a limit of 0")
             spot_ids = {
@@ -327,7 +310,6 @@ class SpotSearchDistanceTest(TestCase):
             # Testing that the default limit is 20 spaces
             response = c.get("/api/v1/spot", {'center_latitude': center_lat, 'center_longitude': center_long, 'distance': 150})
             self.assertEquals(response.status_code, 200, "Accepts the distance query")
-            self.assertEquals(response["Content-Type"], "application/json", "Has the json header")
             spots = json.loads(response.content)
             self.assertEquals(len(spots), 20, "Returns 20 spots with no defined limit")
             spot_ids = {
@@ -357,7 +339,6 @@ class SpotSearchDistanceTest(TestCase):
             # Testing that with a limit of 0, we pull in all spots in range
             response = c.get("/api/v1/spot", {'center_latitude': center_lat, 'center_longitude': center_long, 'distance': 130, 'limit': 0})
             self.assertEquals(response.status_code, 200, "Accepts the distance query")
-            self.assertEquals(response["Content-Type"], "application/json", "Has the json header")
             spots = json.loads(response.content)
             self.assertEquals(len(spots), 112, "Returns 112 spots with a limit of 0")
             spot_ids = {

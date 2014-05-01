@@ -27,9 +27,11 @@ from django.test.utils import override_settings
 from mock import patch
 from django.core import cache
 from spotseeker_server import models
+import spotseeker_server.auth.oauth as ss_oauth
 
 
-@override_settings(SPOTSEEKER_AUTH_MODULE='spotseeker_server.auth.oauth')
+@patch('spotseeker_server.require_auth.APP_AUTH_METHOD', ss_oauth.authenticate_application)
+@patch('spotseeker_server.require_auth.USER_AUTH_METHOD', ss_oauth.authenticate_user)
 class SpotAuthOAuth(TestCase):
 
     def setUp(self):
@@ -85,7 +87,6 @@ class SpotAuthOAuth(TestCase):
             self.assertEquals(response.status_code, 401, "Got a 401 w/ an invented oauth client id")
 
     @override_settings(SPOTSEEKER_SPOT_FORM='spotseeker_server.default_forms.spot.DefaultSpotForm')
-    @override_settings(SPOTSEEKER_SPOTEXTENDEDINFO_FORM='spotseeker_server.default_forms.spot.DefaultSpotExtendedInfoForm')
     def test_put_no_oauth(self):
         dummy_cache = cache.get_cache('django.core.cache.backends.dummy.DummyCache')
         with patch.object(models, 'cache', dummy_cache):
@@ -102,7 +103,6 @@ class SpotAuthOAuth(TestCase):
             self.assertEquals(response.status_code, 401, "Rejects a PUT w/o oauth info")
 
     @override_settings(SPOTSEEKER_SPOT_FORM='spotseeker_server.default_forms.spot.DefaultSpotForm')
-    @override_settings(SPOTSEEKER_SPOTEXTENDEDINFO_FORM='spotseeker_server.default_forms.spot.DefaultSpotExtendedInfoForm')
     def test_put_untrusted_oauth(self):
         dummy_cache = cache.get_cache('django.core.cache.backends.dummy.DummyCache')
         with patch.object(models, 'cache', dummy_cache):
@@ -131,7 +131,6 @@ class SpotAuthOAuth(TestCase):
             self.assertEquals(response.status_code, 401, "Rejects a PUT from a non-trusted oauth client")
 
     @override_settings(SPOTSEEKER_SPOT_FORM='spotseeker_server.default_forms.spot.DefaultSpotForm')
-    @override_settings(SPOTSEEKER_SPOTEXTENDEDINFO_FORM='spotseeker_server.default_forms.spot.DefaultSpotExtendedInfoForm')
     def test_put_untrusted_oauth_with_user_header(self):
         dummy_cache = cache.get_cache('django.core.cache.backends.dummy.DummyCache')
         with patch.object(models, 'cache', dummy_cache):
@@ -159,7 +158,6 @@ class SpotAuthOAuth(TestCase):
             self.assertEquals(response.status_code, 401, "Rejects a PUT from a non-trusted oauth client")
 
     @override_settings(SPOTSEEKER_SPOT_FORM='spotseeker_server.default_forms.spot.DefaultSpotForm')
-    @override_settings(SPOTSEEKER_SPOTEXTENDEDINFO_FORM='spotseeker_server.default_forms.spot.DefaultSpotExtendedInfoForm')
     def test_put_trusted_client(self):
         dummy_cache = cache.get_cache('django.core.cache.backends.dummy.DummyCache')
         with patch.object(models, 'cache', dummy_cache):
@@ -189,7 +187,6 @@ class SpotAuthOAuth(TestCase):
             self.assertEquals(response.status_code, 200, "Accepts a PUT from a trusted oauth client")
 
     @override_settings(SPOTSEEKER_SPOT_FORM='spotseeker_server.default_forms.spot.DefaultSpotForm')
-    @override_settings(SPOTSEEKER_SPOTEXTENDEDINFO_FORM='spotseeker_server.default_forms.spot.DefaultSpotExtendedInfoForm')
     def test_put_trusted_client_no_user(self):
         dummy_cache = cache.get_cache('django.core.cache.backends.dummy.DummyCache')
         with patch.object(models, 'cache', dummy_cache):
