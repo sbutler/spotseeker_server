@@ -45,7 +45,6 @@ validated_ei = {
     "reservable": ['true', 'reservations'],
     "noise_level": ['silent', 'quiet', 'moderate', 'loud', 'variable'],
     "uiuc_require_address": "re",
-    "campus": ['uiuc', 'uis', 'uic'],
 }
 
 
