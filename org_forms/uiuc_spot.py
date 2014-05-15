@@ -57,7 +57,7 @@ def uiuc_validate(value, choices):
             int(value)
         except:
             raise forms.ValidationError("Value must be an int")
-    if choices == "re":
+    elif choices == "re":
         try:
             re.compile(value)
         except:
