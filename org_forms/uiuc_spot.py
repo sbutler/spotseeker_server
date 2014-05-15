@@ -20,11 +20,13 @@
 """
 
 from django import forms
+from django.core.validators import URLValidator
 from django.dispatch import receiver
 from spotseeker_server.models import Spot, SpotExtendedInfo
 from spotseeker_server.default_forms.spot import DefaultSpotForm, DefaultSpotExtendedInfoForm
 from spotseeker_server.dispatch import spot_post_build
 import simplejson as json
+import sys
 import re
 
 
@@ -45,6 +47,7 @@ validated_ei = {
     "reservable": ['true', 'reservations'],
     "noise_level": ['silent', 'quiet', 'moderate', 'loud', 'variable'],
     "uiuc_require_address": "re",
+    "reservation_url": URLValidator(),
     "campus": ['uiuc', 'uis', 'uic'],
 }
 
@@ -62,6 +65,12 @@ def uiuc_validate(value, choices):
             re.compile(value)
         except:
             raise forms.ValidationError("Value must be a regular expression")
+    elif callable(choices):
+        try:
+            choices(value)
+        except:
+            exc_value = sys.exc_info()[1]
+            raise forms.ValidationError(exc_value)
     elif not value in choices:
         raise forms.ValidationError("Value must be one of: {0}".format('; '.join(choices)))
 
