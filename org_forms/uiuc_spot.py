@@ -19,6 +19,7 @@
         adapted for the UIUC spot schema.
 """
 
+import bleach
 from django import forms
 from django.core.validators import URLValidator
 from django.dispatch import receiver
@@ -49,7 +50,22 @@ validated_ei = {
     "uiuc_require_address": "re",
     "reservation_url": URLValidator(),
     "campus": ['uiuc', 'uis', 'uic'],
+    "access_notes": 'html',
+    "reservation_notes": 'html',
 }
+
+
+def _clean_html_a(name, value):
+    """
+    Clean the 'a' tag for an HTML field. This allows 'title',
+    'target', and 'href's that point to http or https.
+    """
+    if name in ('title', 'target'):
+        return True
+    elif name == 'href':
+        return value.startswith('http://') or value.startswith('https://')
+    else:
+        return False
 
 
 def uiuc_validate(value, choices):
@@ -65,6 +81,24 @@ def uiuc_validate(value, choices):
             re.compile(value)
         except:
             raise forms.ValidationError("Value must be a regular expression")
+    elif choices == "html":
+        value = bleach.clean(value,
+            tags=(
+                'a', 'span',
+                'em', 'i',
+                'strong', 'b',
+            ),
+            attributes={
+                '*': ['style', 'class'],
+                'a': _clean_html_a,
+            },
+            styles=(
+                'text-decoration',
+                'text-align',
+                'color',
+                'background-color',
+            )
+        )
     elif callable(choices):
         try:
             choices(value)
@@ -73,6 +107,8 @@ def uiuc_validate(value, choices):
             raise forms.ValidationError(exc_value)
     elif not value in choices:
         raise forms.ValidationError("Value must be one of: {0}".format('; '.join(choices)))
+
+    return value
 
 
 class UIUCSpotExtendedInfoForm(DefaultSpotExtendedInfoForm):
@@ -84,7 +120,7 @@ class UIUCSpotExtendedInfoForm(DefaultSpotExtendedInfoForm):
         value = self.cleaned_data['value']
 
         if key in validated_ei:
-            uiuc_validate(value, validated_ei[key])
+            self.cleaned_data['value'] = uiuc_validate(value, validated_ei[key])
 
         return cleaned_data
 
