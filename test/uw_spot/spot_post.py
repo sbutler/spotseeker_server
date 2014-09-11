@@ -28,6 +28,7 @@ from spotseeker_server import models
 @override_settings(SPOTSEEKER_AUTH_MODULE='spotseeker_server.auth.all_ok')
 @override_settings(SPOTSEEKER_SPOT_FORM='spotseeker_server.org_forms.uw_spot.UWSpotForm')
 @override_settings(SPOTSEEKER_SPOTEXTENDEDINFO_FORM='spotseeker_server.org_forms.uw_spot.UWSpotExtendedInfoForm')
+@override_settings(SPOTSEEKER_AUTH_ADMINS=('demo_user',))
 class UWSpotPOSTTest(TransactionTestCase):
     """ Tests creating a new Spot via POST.
     """
@@ -188,7 +189,7 @@ class UWSpotPOSTTest(TransactionTestCase):
             new_name = "testing POST name: {0}".format(random.random())
             new_capacity = 10
             computers = 'There are none'
-            json_string = '{"name":"%s","capacity":"%s","extended_info":{"has_outlets":"true","has_computers":"%s","manager":"Tina","organization":"UW"}}' % (new_name, new_capacity, computers)
+            json_string = '{"name":"%s","capacity":"%s","location": {"latitude": 55, "longitude": -30},"extended_info":{"has_outlets":"true","has_computers":"%s","manager":"Tina","organization":"UW"}}' % (new_name, new_capacity, computers)
             response = c.post('/api/v1/spot/', json_string, content_type="application/json", follow=False)
 
             self.assertEquals(response.status_code, 400, "Not created because has_computers field did not pass validation")
@@ -204,11 +205,10 @@ class UWSpotPOSTTest(TransactionTestCase):
             c = Client()
             new_name = "testing POST name: {0}".format(random.random())
             new_capacity = 10
-            computers = "String"
-            json_string = '{"name":"%s","capacity":"%s","extended_info":{"has_outlets":"true","has_computers":"True","num_computers":"%s","manager":"Tina","organization":"UW"}}' % (new_name, new_capacity, computers)
+            computers = "invalid_int"
+            json_string = '{"name":"%s","capacity":"%s","location":{"latitude": 55, "longitude": -30},"extended_info":{"has_outlets":"true","has_computers":"true","num_computers":"%s","manager":"Tina","organization":"UW"}}' % (new_name, new_capacity, computers)
             response = c.post('/api/v1/spot/', json_string, content_type="application/json", follow=False)
-
-            self.assertEquals(response.status_code, 400, "Not created because num_computers field did not pass validation")
+            self.assertEquals(response.status_code, 400, "Make sure not to create the spot because num_computers field did not pass validation")
 
             json_string = '{"name":"%s","capacity":"%s","location": {"latitude": 55, "longitude": -30},"extended_info":{"has_outlets":"true","has_computers":"true","num_computers":"15","manager":"Tina","organization":"UW"}}' % (new_name, new_capacity)
             response = c.post('/api/v1/spot/', json_string, content_type="application/json", follow=False)
@@ -333,4 +333,4 @@ class UWSpotPOSTTest(TransactionTestCase):
             response = c.post('/api/v1/spot/', json_string, content_type="application/json", follow=False)
 
             error_message = json.loads(response.content)['error']
-            self.assertEquals(error_message, "UWSpot must have extended info", "Doesn't add spot info with invalid extended info")
+            self.assertEquals(error_message, "[u'UWSpot must have extended info']", "Doesn't add spot info with invalid extended info")
