@@ -18,8 +18,11 @@ This provides a management command to django's manage.py called create_sample_sp
 """
 from django.core.management.base import BaseCommand, CommandError
 from spotseeker_server.models import *
+from django.contrib.auth.models import User
 from django.core.files import File
 from decimal import *
+from datetime import datetime
+import os
 
 
 class Command(BaseCommand):
@@ -37,10 +40,19 @@ class Command(BaseCommand):
             SpotExtendedInfo.objects.all().delete()
             SpotAvailableHours.objects.all().delete()
 
+            lab_space = Spot.objects.create(name="This is a computer lab", capacity=200, longitude=Decimal('-122.306644'), latitude=Decimal('47.658241'), building_name="Art Building")
+            production_studio = SpotType.objects.get_or_create(name="studio")[0]  # get_or_create returns a tuple
+            computer_lab = SpotType.objects.get_or_create(name="computer_lab")[0]  # get_or_create returns a tuple
+            lab_space.spottypes.add(production_studio)
+            lab_space.spottypes.add(computer_lab)
+            lab_space.save()
+            SpotExtendedInfo.objects.create(key="campus", value="seattle", spot=lab_space)
+
             cafe_type = SpotType.objects.get_or_create(name="cafe")[0]  # get_or_create returns a tuple
-            art = Spot.objects.create(name="In the Art Building", capacity=10, longitude=Decimal('-122.306644'), latitude=Decimal('47.658241'), building_name="Art Building")
+            art = Spot.objects.create(name="In the Art Building - multiline name to test", capacity=10, longitude=Decimal('-122.306644'), latitude=Decimal('47.658241'), building_name="Art Building")
             art.spottypes.add(cafe_type)
             art.save()
+            art_ada = SpotExtendedInfo.objects.create(key="location_description", value="This is the location of the space", spot=art)
             art_ada = SpotExtendedInfo.objects.create(key="has_whiteboards", value="true", spot=art)
             art_ada = SpotExtendedInfo.objects.create(key="has_outlets", value="true", spot=art)
             art_ada = SpotExtendedInfo.objects.create(key="has_displays", value="true", spot=art)
@@ -49,6 +61,8 @@ class Command(BaseCommand):
             art_ada = SpotExtendedInfo.objects.create(key="has_projector", value="true", spot=art)
             art_ada = SpotExtendedInfo.objects.create(key="has_computers", value="true", spot=art)
             art_ada = SpotExtendedInfo.objects.create(key="campus", value="seattle", spot=art)
+            SpotExtendedInfo.objects.create(key="access_notes", value=" This space reservable outside of TLC hours. To reserve, go to http://www.tacoma.uw.edu/library/reserve-group-study-rooms", spot=art)
+            SpotExtendedInfo.objects.create(key="reservation_notes", value=" This space reservable outside of TLC hours. To reserve, go to http://www.tacoma.uw.edu/library/reserve-group-study-rooms", spot=art)
             mgr = SpotExtendedInfo.objects.create(key="manager", value="ctlt", spot=art)
             org = SpotExtendedInfo.objects.create(key="organization", value="Art", spot=art)
 
@@ -62,12 +76,52 @@ class Command(BaseCommand):
             mgr = SpotExtendedInfo.objects.create(key="manager", value="ctlt", spot=art2)
             org = SpotExtendedInfo.objects.create(key="organization", value="Art", spot=art2)
 
-#            f = open("building1.jpg")
-#            art_img1 = SpotImage.objects.create( description = "This is one building", spot=art, image = File(f) )
-#            f = open("building2.jpg")
-#            art_img2 = SpotImage.objects.create( description = "This is another building", spot=art, image = File(f) )
-#            f = open("building3.jpg")
-#            art_img3 = SpotImage.objects.create( description = "This is a third art building", spot=art, image = File(f) )
+            base_dir = os.path.dirname(os.path.realpath(__file__))
+            f = open(os.path.join(base_dir, 'resources', "building3.jpg"))
+            art_img1 = SpotImage.objects.create( description = "This is one building", spot=art, image = File(f) )
+            f = open(os.path.join(base_dir, 'resources', "building4.jpg"))
+            art_img2 = SpotImage.objects.create( description = "This is another building", spot=art, image = File(f) )
+            f = open(os.path.join(base_dir, 'resources', "building5.jpg"))
+            art_img3 = SpotImage.objects.create( description = "This is a third art building", spot=art, image = File(f) )
+
+            f = open(os.path.join(base_dir, 'resources', "building6.jpg"))
+            art_img4 = SpotImage.objects.create( description = "This is a third art building", spot=art, image = File(f) )
+
+            reviewer1, created = User.objects.get_or_create(username = 'review1')
+            reviewer2, created = User.objects.get_or_create(username = 'review2')
+            publisher1, created = User.objects.get_or_create(username = 'publisher1')
+            publisher2, created = User.objects.get_or_create(username = 'publisher2')
+
+            review1 = SpaceReview.objects.create(
+                space=art,
+                reviewer=reviewer1,
+                published_by=publisher1,
+                review = "Super duper space\nReally nice.",
+                rating = 5,
+                date_published = datetime.now(),
+                is_published = True)
+
+            review2 = SpaceReview.objects.create(
+                space=art,
+                reviewer=reviewer2,
+                published_by=publisher2,
+                review = "OK space",
+                rating = 4,
+                date_published = datetime.now(),
+                is_published = True)
+
+
+            review3 = SpaceReview.objects.create(
+                space=art,
+                reviewer=reviewer2,
+                published_by=publisher2,
+                review = "Blah",
+                rating = 1,
+                date_published = datetime.now(),
+                is_published = False)
+
+            SpotExtendedInfo.objects.create(key="rating", value="4.5", spot=art)
+            SpotExtendedInfo.objects.create(key="review_count", value="2", spot=art)
 
             study_room_type = SpotType.objects.get_or_create(name="study_room")[0]
             tacoma = Spot.objects.create(name="WCG #1", capacity=20, longitude=Decimal('-122.437212'), latitude=Decimal('47.246213'), building_name="tacoma")
@@ -124,6 +178,7 @@ class Command(BaseCommand):
             org = SpotExtendedInfo.objects.create(key="organization", value="Fisheries", spot=fish_patio)
 
             for day in ["su", "m", "t", "w", "th", "f", "sa"]:
+                SpotAvailableHours.objects.create(spot=lab_space, day=day, start_time="00:00", end_time="23:59")
                 SpotAvailableHours.objects.create(spot=art, day=day, start_time="00:00", end_time="23:59")
                 SpotAvailableHours.objects.create(spot=art2, day=day, start_time="00:00", end_time="23:59")
                 SpotAvailableHours.objects.create(spot=tacoma, day=day, start_time="00:00", end_time="23:59")

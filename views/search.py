@@ -40,6 +40,7 @@ class SearchView(RESTDispatch):
     """ Handles searching for Spots with particular attributes based on a query string.
     """
     @user_auth_required
+    @admin_auth_required
     def POST(self, request):
         return SpotView().run(request)
 
@@ -100,7 +101,17 @@ class SearchView(RESTDispatch):
                     at_day = day_dict[at_day]
 
                     if until_day == at_day:
-                        query = query.filter(spotavailablehours__day__iexact=until_day, spotavailablehours__start_time__lte=at_time, spotavailablehours__end_time__gte=until_time)
+                        if strptime(until_time, "%H:%M") >= strptime(at_time, "%H:%M"):
+                            query = query.filter(spotavailablehours__day__iexact=until_day, spotavailablehours__start_time__lte=at_time, spotavailablehours__end_time__gte=until_time)
+                        else:
+                            days_to_test = ["su", "m", "t", "w", "th", "f", "sa"]
+                            days_to_test.remove(at_day)
+
+                            query = query.filter(spotavailablehours__day__iexact=at_day, spotavailablehours__start_time__lte=at_time, spotavailablehours__end_time__gte="23:59")
+                            query = query.filter(spotavailablehours__day__iexact=until_day, spotavailablehours__start_time__lte="00:00", spotavailablehours__end_time__gte=until_time)
+
+                            for day in days_to_test:
+                                query = query.filter(spotavailablehours__day__iexact=day, spotavailablehours__start_time__lte="00:00", spotavailablehours__end_time__gte="23:59")
                     else:
                         days_to_test = self.get_days_in_range(at_day, until_day)
                         last_day = days_to_test.pop()

@@ -28,6 +28,7 @@ from spotseeker_server import models
 @override_settings(SPOTSEEKER_AUTH_MODULE='spotseeker_server.auth.all_ok')
 @override_settings(SPOTSEEKER_SPOT_FORM='spotseeker_server.org_forms.uw_spot.UWSpotForm')
 @override_settings(SPOTSEEKER_SPOTEXTENDEDINFO_FORM='spotseeker_server.org_forms.uw_spot.UWSpotExtendedInfoForm')
+@override_settings(SPOTSEEKER_AUTH_ADMINS=('demo_user',))
 class UWSpotPUTTest(TransactionTestCase):
     """ Tests updating Spot information via PUT.
     """
@@ -132,16 +133,27 @@ class UWSpotPUTTest(TransactionTestCase):
             response = c.get(self.url)
             etag = response["ETag"]
 
-            json_string = '{"name":"%s","capacity":"%s","location": {"latitude": 55, "longitude": -30},"extended_info":{"has_whiteboards":"true","has_outlets":"true","manager":"Sam","organization":"UW"}}' % (new_name, new_capacity)
+            json_string = '{"name":"%s","capacity":"%s","location": {"latitude": 55, "longitude": -30},"extended_info":{"has_whiteboards":"true","has_outlets":"true","has_computers":"true","num_computers":"10","manager":"Sam","organization":"UW"}}' % (new_name, new_capacity)
             response = c.put(self.url, json_string, content_type="application/json", If_Match=etag)
             self.assertEquals(response.status_code, 200, "Accepts a valid json string")
 
+            # test: invalid extended info value
             response = c.get(self.url)
             etag = response["ETag"]
-            updated_json_string = '{"name":"%s","capacity":"%s","location": {"latitude": 55, "longitude": -30},"extended_info":{"has_whiteboards":"true","has_outlets":"wub wub wub wu wu wuhhhh WUB WUB WUBBBBUB","manager":"Sam","organization":"UW"}}' % (new_name, new_capacity)
+            updated_json_string = '{"name":"%s","capacity":"%s","location": {"latitude": 55, "longitude": -30},"extended_info":{"has_whiteboards":"true","has_outlets":"wub wub wub wu wu wuhhhh WUB WUB WUBBBBUB", "has_computers":"true", "num_computers":"10","manager":"Sam","organization":"UW"}}' % (new_name, new_capacity)
 
             response = c.put(self.url, updated_json_string, content_type="application/json", If_Match=etag)
             self.assertEquals(response.status_code, 400, "Doesn't update spot info with invalid extended info")
 
             response = c.get(self.url)
             self.assertEquals(json.loads(json_string)['extended_info'], json.loads(response.content)['extended_info'], "Doesn't update spot info with invalid extended info")
+            
+            # test: invalid int value
+            invalid_int = "invalid_int"
+            invalid_int_json_string = '{"name":"%s","capacity":"%s","location": {"latitude": 55, "longitude": -30},"extended_info":{"has_whiteboards":"true","has_outlets":"true", "has_computers":"true", "num_computers":"%s","manager":"Sam","organization":"UW"}}' % (new_name, new_capacity, invalid_int)
+
+            response = c.put(self.url, invalid_int_json_string, content_type="application/json", If_Match=etag)
+            self.assertEquals(response.status_code, 400, "Doesn't update spot info with invalid int value")
+
+            response = c.get(self.url)
+            self.assertEquals(json.loads(json_string)['extended_info'], json.loads(response.content)['extended_info'], "Doesn't update spot info with invalid int value")

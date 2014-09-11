@@ -24,10 +24,13 @@
 """
 
 from django.db import models
-from django.core.exceptions import ValidationError
+from django.db.models import Sum, Count
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from django.core.validators import validate_slug
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.core.files.uploadedfile import UploadedFile
 from django.core.urlresolvers import reverse
+from django.contrib.auth.models import User
 import hashlib
 import datetime
 import time
@@ -84,8 +87,7 @@ class Spot(models.Model):
 
     @update_etag
     def save(self, *args, **kwargs):
-        if cache.get(self.pk):
-            cache.delete(self.pk)
+        cache.delete(self.pk)
         super(Spot, self).save(*args, **kwargs)
 
     def rest_url(self):
@@ -114,7 +116,7 @@ class Spot(models.Model):
                 available_hours[window.get_day_display()].append(window.json_data_structure())
 
             images = []
-            for img in SpotImage.objects.filter(spot=self):
+            for img in SpotImage.objects.filter(spot=self).order_by('display_index'):
                 images.append(img.json_data_structure())
             types = []
             for t in self.spottypes.all():
@@ -149,6 +151,33 @@ class Spot(models.Model):
             cache.add(self.pk, spot_json)
         return spot_json
 
+    def update_rating(self):
+        data = SpaceReview.objects.filter(space=self, is_published=True, is_deleted=False).aggregate(total=Sum('rating'), count=Count('rating'))
+        
+        if not data['total']:
+            return
+
+        # Round down to .5 stars:
+        new_rating = int(2 * data['total'] / data['count']) / 2.0
+        try:
+            extended_info = SpotExtendedInfo.objects.get(spot=self, key="rating", )
+            if extended_info:
+                extended_info.value = new_rating
+                extended_info.save()
+
+        except ObjectDoesNotExist as ex:
+            extended_info = SpotExtendedInfo.objects.create(spot=self, key="rating", value=new_rating)
+
+        try:
+            extended_info = SpotExtendedInfo.objects.get(spot=self, key="review_count", )
+            if extended_info:
+                extended_info.value = data['count']
+                extended_info.save()
+
+        except ObjectDoesNotExist as ex:
+            extended_info = SpotExtendedInfo.objects.create(spot=self, key="review_count", value=data['count'])
+
+
     def delete(self, *args, **kwargs):
         cache.delete(self.pk)
         super(Spot, self).delete(*args, **kwargs)
@@ -159,6 +188,24 @@ class Spot(models.Model):
             return Spot.objects.get(external_id=spot_id[9:])
         else:
             return Spot.objects.get(pk=spot_id)
+
+
+class FavoriteSpot(models.Model):
+    """ A FavoriteSpot associates a User and Spot.
+    """
+    user = models.ForeignKey(User)
+    spot = models.ForeignKey(Spot)
+
+    def json_data_structure(self):
+        """ Returns the JSON for the Spot that is a Favorite.
+        """
+        return self.spot.json_data_structure();
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        spots = self.user.favoritespot_set.all()
+        if self.spot in spots:
+            raise ValidationError("This Spot has already been favorited")
 
 
 class SpotAvailableHours(models.Model):
@@ -234,6 +281,7 @@ class SpotImage(models.Model):
     }
 
     description = models.CharField(max_length=200, blank=True)
+    display_index = models.PositiveIntegerField(null=True, blank=True)
     image = models.ImageField(upload_to="space_images")
     spot = models.ForeignKey(Spot)
     content_type = models.CharField(max_length=40)
@@ -263,7 +311,8 @@ class SpotImage(models.Model):
             "upload_user": self.upload_user,
             "upload_application": self.upload_application,
             "thumbnail_root": reverse('spot-image-thumb', kwargs={'spot_id': self.spot.pk, 'image_id': self.pk}).rstrip('/'),
-            "description": self.description
+            "description": self.description,
+            "display_index": self.display_index
         }
 
     @update_etag
@@ -282,12 +331,13 @@ class SpotImage(models.Model):
         self.content_type = SpotImage.CONTENT_TYPES[img.format]
         self.width, self.height = img.size
 
+        cache.delete(self.spot.pk)
         super(SpotImage, self).save(*args, **kwargs)
 
     @update_etag
     def delete(self, *args, **kwargs):
         self.image.delete(save=False)
-
+        cache.delete(self.spot.pk)
         super(SpotImage, self).delete(*args, **kwargs)
 
     def rest_url(self):
@@ -297,9 +347,71 @@ class SpotImage(models.Model):
 class TrustedOAuthClient(models.Model):
     consumer = models.ForeignKey(oauth_provider.models.Consumer)
     is_trusted = models.BooleanField()
+    bypasses_user_authorization = models.BooleanField()
 
     class Meta:
         verbose_name_plural = "Trusted OAuth clients"
 
     def __unicode__(self):
         return self.consumer.name
+
+
+class SpaceReview(models.Model):
+    space = models.ForeignKey(Spot)
+    reviewer = models.ForeignKey(User, related_name='reviewer')
+    published_by = models.ForeignKey(User, related_name='published_by', null=True)
+    review = models.CharField(max_length=1000, default="")
+    original_review = models.CharField(max_length=1000, default="")
+    rating = models.IntegerField(validators=[
+                                    MaxValueValidator(5),
+                                    MinValueValidator(1)
+                                 ])
+    date_submitted = models.DateTimeField(auto_now_add=True)
+    date_published = models.DateTimeField(null=True)
+    is_published = models.BooleanField()
+    is_deleted = models.BooleanField()
+
+    def json_data_structure(self):
+        submitted = self.date_submitted.replace(microsecond = 0)
+        return {
+            'reviewer': self.reviewer.username,
+            'review': self.review,
+            'rating': self.rating,
+            'date_submitted':submitted.isoformat(),
+        }
+
+    def full_json_data_structure(self):
+        data = {
+            'id': self.pk,
+            'space_name': self.space.name,
+            'space_id': self.space.pk,
+            'reviewer': self.reviewer.username,
+            'review': self.review,
+            'rating': self.rating,
+            'original_review': self.original_review,
+            'date_submitted': self.date_submitted.isoformat(),
+            'is_published': self.is_published,
+            'is_deleted': self.is_deleted,
+        }
+
+        if self.is_published:
+            data['date_published'] = self.date_published.isoformat()
+
+        return data
+ 
+
+class SharedSpace(models.Model):
+    space = models.ForeignKey(Spot)
+    user = models.CharField(max_length=16)
+    sender = models.CharField(max_length=256)
+
+
+class SharedSpaceRecipient(models.Model):
+    shared_space = models.ForeignKey(SharedSpace)
+    hash_key = models.CharField(max_length=32)
+    recipient = models.CharField(max_length=256)
+    user = models.CharField(max_length=16, null=True, blank=True, default=None)
+    date_shared = models.DateTimeField(auto_now_add=True)
+    shared_count = models.IntegerField()
+    date_first_viewed = models.DateTimeField(null=True)
+    viewed_count = models.IntegerField()
