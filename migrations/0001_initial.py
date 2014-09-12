@@ -29,7 +29,7 @@ class Migration(SchemaMigration):
         db.send_create_signal('spotseeker_server', ['Spot'])
 
         # Adding model 'SpotAvailableHours'
-        db.create_table('spotseeker_server_spotavailablehours', (
+        db.create_table('spotseeker_server_spotavaid9a2', (
             ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('spot', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['spotseeker_server.Spot'])),
             ('day', self.gf('django.db.models.fields.CharField')(max_length=3)),
@@ -39,7 +39,7 @@ class Migration(SchemaMigration):
         db.send_create_signal('spotseeker_server', ['SpotAvailableHours'])
 
         # Adding model 'SpotExtendedInfo'
-        db.create_table('spotseeker_server_spotextendedinfo', (
+        db.create_table('spotseeker_server_spotextedd8e', (
             ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('key', self.gf('django.db.models.fields.CharField')(max_length=50)),
             ('value', self.gf('django.db.models.fields.CharField')(max_length=200)),
@@ -65,7 +65,7 @@ class Migration(SchemaMigration):
         db.send_create_signal('spotseeker_server', ['SpotImage'])
 
         # Adding model 'TrustedOAuthClient'
-        db.create_table('spotseeker_server_trustedoauthclient', (
+        db.create_table('spotseeker_server_trustedoe44a', (
             ('id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('consumer', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['oauth_provider.Consumer'])),
             ('is_trusted', self.gf('django.db.models.fields.BooleanField')(default=False)),
@@ -77,16 +77,16 @@ class Migration(SchemaMigration):
         db.delete_table('spotseeker_server_spot')
 
         # Deleting model 'SpotAvailableHours'
-        db.delete_table('spotseeker_server_spotavailablehours')
+        db.delete_table('spotseeker_server_spotavaid9a2')
 
         # Deleting model 'SpotExtendedInfo'
-        db.delete_table('spotseeker_server_spotextendedinfo')
+        db.delete_table('spotseeker_server_spotextedd8e')
 
         # Deleting model 'SpotImage'
         db.delete_table('spotseeker_server_spotimage')
 
         # Deleting model 'TrustedOAuthClient'
-        db.delete_table('spotseeker_server_trustedoauthclient')
+        db.delete_table('spotseeker_server_trustedoe44a')
 
     models = {
         'auth.group': {
@@ -154,7 +154,7 @@ class Migration(SchemaMigration):
             'type_name': ('django.db.models.fields.CharField', [], {'max_length': '100', 'blank': 'True'})
         },
         'spotseeker_server.spotavailablehours': {
-            'Meta': {'object_name': 'SpotAvailableHours'},
+            'Meta': {'object_name': 'SpotAvailableHours', 'db_table': "'spotseeker_server_spotavaid9a2'"},
             'day': ('django.db.models.fields.CharField', [], {'max_length': '3'}),
             'end_time': ('django.db.models.fields.TimeField', [], {}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
@@ -162,7 +162,7 @@ class Migration(SchemaMigration):
             'start_time': ('django.db.models.fields.TimeField', [], {})
         },
         'spotseeker_server.spotextendedinfo': {
-            'Meta': {'object_name': 'SpotExtendedInfo'},
+            'Meta': {'object_name': 'SpotExtendedInfo', 'db_table': "'spotseeker_server_spotextedd8e'"},
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'key': ('django.db.models.fields.CharField', [], {'max_length': '50'}),
             'spot': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['spotseeker_server.Spot']"}),
@@ -184,7 +184,7 @@ class Migration(SchemaMigration):
             'width': ('django.db.models.fields.IntegerField', [], {})
         },
         'spotseeker_server.trustedoauthclient': {
-            'Meta': {'object_name': 'TrustedOAuthClient'},
+            'Meta': {'object_name': 'TrustedOAuthClient', 'db_table': "'spotseeker_server_trustedoe44a'"},
             'consumer': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['oauth_provider.Consumer']"}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'is_trusted': ('django.db.models.fields.BooleanField', [], {'default': 'False'})
