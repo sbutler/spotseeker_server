@@ -91,7 +91,7 @@ class Migration(DataMigration):
             'type_name': ('django.db.models.fields.CharField', [], {'max_length': '100', 'blank': 'True'})
         },
         'spotseeker_server.spotavailablehours': {
-            'Meta': {'object_name': 'SpotAvailableHours'},
+            'Meta': {'object_name': 'SpotAvailableHours', 'db_table': "'spotseeker_server_spotavaid9a2'"},
             'day': ('django.db.models.fields.CharField', [], {'max_length': '3'}),
             'end_time': ('django.db.models.fields.TimeField', [], {}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
@@ -99,7 +99,7 @@ class Migration(DataMigration):
             'start_time': ('django.db.models.fields.TimeField', [], {})
         },
         'spotseeker_server.spotextendedinfo': {
-            'Meta': {'object_name': 'SpotExtendedInfo'},
+            'Meta': {'object_name': 'SpotExtendedInfo', 'db_table': "'spotseeker_server_spotextedd8e'"},
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'key': ('django.db.models.fields.CharField', [], {'max_length': '50'}),
             'spot': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['spotseeker_server.Spot']"}),
@@ -126,7 +126,7 @@ class Migration(DataMigration):
             'name': ('django.db.models.fields.SlugField', [], {'max_length': '50'})
         },
         'spotseeker_server.trustedoauthclient': {
-            'Meta': {'object_name': 'TrustedOAuthClient'},
+            'Meta': {'object_name': 'TrustedOAuthClient', 'db_table': "'spotseeker_server_trustedoe44a'"},
             'consumer': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['oauth_provider.Consumer']"}),
             'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'is_trusted': ('django.db.models.fields.BooleanField', [], {'default': 'False'})
