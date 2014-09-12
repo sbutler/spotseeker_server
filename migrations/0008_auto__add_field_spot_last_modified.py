@@ -11,7 +11,7 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'Spot.last_modified'
         db.add_column('spotseeker_server_spot', 'last_modified',
-                      self.gf('django.db.models.fields.DateTimeField')(auto_now=True, auto_now_add=True, default=datetime.datetime(2012, 7, 13, 0, 0, 0, 0, pytz.UTC), blank=True),
+                      self.gf('django.db.models.fields.DateTimeField')(auto_now=True, auto_now_add=True, default=datetime.datetime(2012, 7, 13, 0, 0, 0, 0), blank=True),
                       keep_default=False)
 
     def backwards(self, orm):
