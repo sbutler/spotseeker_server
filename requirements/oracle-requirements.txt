@@ -1,2 +1,11 @@
--r base-requirements.txt
-mysql-python
+Django>=1.4,<1.5
+mock
+oauth2
+PIL
+pyproj
+pytz
+South
+simplejson>=2.1
+
+cx_Oracle
+-e hg+https://bitbucket.org/stephen-butler/django-oauth-plus@oracle-fix#egg=django-oauth-plus-2.2.4
