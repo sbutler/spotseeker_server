@@ -23,6 +23,7 @@ import hashlib
 import time
 import random
 from oauth_provider.models import Consumer
+from oauth_provider.consts import SECRET_SIZE
 from spotseeker_server.models import TrustedOAuthClient
 
 
@@ -48,7 +49,7 @@ class Command(BaseCommand):
             consumer_name = raw_input('Enter consumer name: ')
 
         key = hashlib.sha1("{0} - {1}".format(random.random(), time.time())).hexdigest()
-        secret = hashlib.sha1("{0} - {1}".format(random.random(), time.time())).hexdigest()
+        secret = hashlib.sha1("{0} - {1}".format(random.random(), time.time())).hexdigest()[0:SECRET_SIZE]
 
         consumer = Consumer.objects.create(name=consumer_name, key=key, secret=secret)
 
