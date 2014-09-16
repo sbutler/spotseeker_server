@@ -2,13 +2,10 @@
 Hello.
 
 <p>{{ comment }}</p>
-<p>I found this campus space through SpaceScout.</p>
+<p>I found this campus space through IlliniSpaces.</p>
 {{ spot_name }},<br />
 {% for type in spot_type %}{% if forloop.first %}{% trans type %}{% else %}, {% trans type %}{% endif %}{% endfor %}{% if spot_location %},<br />
 {{ spot_location }}<br />
 {% else %}.{% endif %}
 
 <p>Get details about this space by using this URL: <a href="{{ share_url }}">{{ share_url }}</a></p>
-
-<p>Download the SpaceScout app from iTunes: <a href="https://itunes.apple.com/us/app/spacescout/id551472160">https://itunes.apple.com/us/app/spacescout/id551472160</a></p>
-

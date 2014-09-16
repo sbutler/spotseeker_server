@@ -3,7 +3,7 @@ Hello.
 
 {{ comment }}
 
-I found this campus space through SpaceScout.
+I found this campus space through IlliniSpaces.
 
 {{ spot_name }},
 {% for type in spot_type %}{% if forloop.first %}{% trans type %}{% else %}, {% trans type %}{% endif %}{% endfor %}{% if spot_location %},
@@ -11,5 +11,3 @@ I found this campus space through SpaceScout.
 {% else %}.{% endif %}
 
 Get details about this space by using this URL: {{ share_url }}
-
-Download the SpaceScout app from iTunes: https://itunes.apple.com/us/app/spacescout/id551472160
