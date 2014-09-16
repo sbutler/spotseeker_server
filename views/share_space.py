@@ -99,11 +99,10 @@ class ShareSpaceView(RESTDispatch):
 
                 recipient.save()
 
-                location_description = None
                 try:
                     location_description = SpotExtendedInfo.objects.get(spot=spot, key='location_description').value
                 except ObjectDoesNotExist:
-                    pass
+                    location_description = None
 
                 spottypes = spot.spottypes.all()
                 spottypes = ["server_%s" % x for x in spottypes]
