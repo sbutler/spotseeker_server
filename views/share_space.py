@@ -59,14 +59,12 @@ class ShareSpaceView(RESTDispatch):
         if type(raw_send_to) is not list:
             raw_send_to = [ raw_send_to ]
 
-        has_valid_to = False
         send_to = []
         for address in raw_send_to:
             if '@' in address:
                 send_to.append(address)
-                has_valid_to = True
 
-        if not has_valid_to:
+        if len(send_to) <= 0:
             logger.error('Invalid To field:  %s' % (body))
             raise RESTException("Invalid 'To'", status_code=400)
 
