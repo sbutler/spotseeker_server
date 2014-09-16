@@ -22,7 +22,9 @@ from spotseeker_server.models import SharedSpace, SharedSpaceRecipient
 from spotseeker_server.auth.oauth import authenticate_user
 from django.http import HttpResponse
 from django.views.decorators.cache import never_cache
+from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
+from django.core.validators import validate_email
 from django.conf import settings
 from django.template.loader import get_template
 from django.template import Context
@@ -60,17 +62,23 @@ class ShareSpaceView(RESTDispatch):
 
         send_to = []
         for address in raw_send_to:
-            if '@' in address:
+            try:
+                validate_email(address)
                 send_to.append(address)
+            except ValidationError:
+                pass
 
         if len(send_to) <= 0:
             logger.error('Invalid To field:  %s' % (body))
             raise RESTException("Invalid 'To'", status_code=400)
 
         send_from = json_values.get('from', None)
-        if send_from and '@' not in send_from:
-            logger.error('Invalid From field:  %s' % (body))
-            raise RESTException("Invalid 'from'", status_code=400)
+        if send_from:
+            try:
+                validate_email(send_from)
+            except ValidationError:
+                logger.error('Invalid From field:  %s' % (body))
+                raise RESTException("Invalid 'from'", status_code=400)
 
         comment = json_values.get('comment', '')
 
