@@ -90,13 +90,20 @@ class ShareSpaceView(RESTDispatch):
 
         for to in send_to:
             try:
-                server = getattr(settings, 'SS_APP_SERVER', socket.gethostname())
-                path = getattr(settings, 'SS_APP_SPACE_PATH', '/space/{{ spot_id }}/{{ spot_name }}')
-                path = re.sub(r'{{\s*spot_id\s*}}', spot_id, path)
-                path = re.sub(r'{{\s*spot_name\s*}}', urlquote(spot.name), path)
                 hash_val = hashlib.md5("%s|%s|%s" % (spot.pk, send_from, to)).hexdigest()
-                share_url = "http://%s%s/%s" % (server, path, hash_val)
-    
+                if hasattr(settings, 'SS_SHARE_URL'):
+                    share_url = settings.SS_SHARE_URL.format(
+                        spot_id=spot.pk,
+                        spot_name=urlquote(spot.name),
+                        share_hash=hash_val
+                    )
+                else:
+                    server = getattr(settings, 'SS_APP_SERVER', socket.gethostname())
+                    path = getattr(settings, 'SS_APP_SPACE_PATH', '/space/{{ spot_id }}/{{ spot_name }}')
+                    path = re.sub(r'{{\s*spot_id\s*}}', spot_id, path)
+                    path = re.sub(r'{{\s*spot_name\s*}}', urlquote(spot.name), path)
+                    share_url = "http://%s%s/%s" % (server, path, hash_val)
+        
                 try:
                     recipient = SharedSpaceRecipient.objects.get(hash_key=hash_val)
                     recipient.shared_count = recipient.shared_count + 1
