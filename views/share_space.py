@@ -83,9 +83,9 @@ class ShareSpaceView(RESTDispatch):
         comment = json_values.get('comment', '')
 
         try:
-            share = SharedSpace.objects.get(space=spot,sender=send_from,user=user.username)
+            share = SharedSpace.objects.get(space=spot, sender=send_from, user=user.username)
         except SharedSpace.DoesNotExist:
-            share = SharedSpace(space=spot,sender=send_from,user=user.username)
+            share = SharedSpace(space=spot, sender=send_from, user=user.username)
             share.save()
 
         for to in send_to:
@@ -101,8 +101,8 @@ class ShareSpaceView(RESTDispatch):
                     recipient = SharedSpaceRecipient.objects.get(hash_key=hash_val)
                     recipient.shared_count = recipient.shared_count + 1
                 except SharedSpaceRecipient.DoesNotExist:
-                    recipient = SharedSpaceRecipient(shared_space=share,hash_key=hash_val,
-                                                    recipient=to,shared_count=1,viewed_count=0)
+                    recipient = SharedSpaceRecipient(shared_space=share, hash_key=hash_val,
+                                                    recipient=to, shared_count=1, viewed_count=0)
 
                 recipient.save()
 
