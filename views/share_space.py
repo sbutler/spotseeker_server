@@ -15,7 +15,6 @@
 """
 
 from spotseeker_server.views.rest_dispatch import RESTDispatch, JSONResponse, RESTException
-from django.core.exceptions import ObjectDoesNotExist
 from django.core.mail import EmailMultiAlternatives
 from spotseeker_server.require_auth import user_auth_required, app_auth_required
 from spotseeker_server.models import Spot, SpotExtendedInfo
@@ -77,7 +76,7 @@ class ShareSpaceView(RESTDispatch):
 
         try:
             share = SharedSpace.objects.get(space=spot,sender=send_from,user=user.username)
-        except ObjectDoesNotExist:
+        except SharedSpace.DoesNotExist:
             share = SharedSpace(space=spot,sender=send_from,user=user.username)
             share.save()
 
@@ -93,7 +92,7 @@ class ShareSpaceView(RESTDispatch):
                 try:
                     recipient = SharedSpaceRecipient.objects.get(hash_key=hash_val)
                     recipient.shared_count = recipient.shared_count + 1
-                except ObjectDoesNotExist:
+                except SharedSpaceRecipient.DoesNotExist:
                     recipient = SharedSpaceRecipient(shared_space=share,hash_key=hash_val,
                                                     recipient=to,shared_count=1,viewed_count=0)
 
@@ -101,7 +100,7 @@ class ShareSpaceView(RESTDispatch):
 
                 try:
                     location_description = SpotExtendedInfo.objects.get(spot=spot, key='location_description').value
-                except ObjectDoesNotExist:
+                except SpotExtendedInfo.DoesNotExist:
                     location_description = None
 
                 spottypes = spot.spottypes.all()
@@ -167,7 +166,7 @@ class SharedSpaceReferenceView(RESTDispatch):
 
         try:
             recipient = SharedSpaceRecipient.objects.get(hash_key=json_values['hash'])
-        except ObjectDoesNotExist:
+        except SharedSpaceRecipient.DoesNotExist:
             return JSONResponse({'error': 'shared spot not found'}, status=401)
 
         if recipient.shared_space.space.pk == int(spot_id):
