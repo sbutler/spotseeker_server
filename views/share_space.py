@@ -68,14 +68,12 @@ class ShareSpaceView(RESTDispatch):
             logger.error('Invalid To field:  %s' % (body))
             raise RESTException("Invalid 'To'", status_code=400)
 
-        send_from = json_values['from'] if 'from' in json_values else None
+        send_from = json_values.get('from', None)
         if send_from and '@' not in send_from:
             logger.error('Invalid From field:  %s' % (body))
             raise RESTException("Invalid 'from'", status_code=400)
 
-        comment = ''
-        if 'comment' in json_values:
-            comment = json_values['comment']
+        comment = json_values.get('comment', '')
 
         try:
             share = SharedSpace.objects.get(space=spot,sender=send_from,user=user.username)
@@ -125,7 +123,7 @@ class ShareSpaceView(RESTDispatch):
                 text_template = get_template('email/share_space/plain_text.txt')
                 html_template = get_template('email/share_space/html.html')
     
-                subject = json_values['subject'] if 'subject' in json_values else subject_template.render(context).rstrip()
+                subject = json_values.get('subject', subject_template.render(context).rstrip())
                 text_content = text_template.render(context)
                 html_content = html_template.render(context)
 
