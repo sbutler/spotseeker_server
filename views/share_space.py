@@ -173,7 +173,7 @@ class SharedSpaceReferenceView(RESTDispatch):
         try:
             recipient = SharedSpaceRecipient.objects.get(hash_key=json_values['hash'])
         except ObjectDoesNotExist:
-            return JSONResponse("{error: 'shared spot not found'}", status=401)
+            return JSONResponse({'error': 'shared spot not found'}, status=401)
 
         if recipient.shared_space.space.pk == int(spot_id):
             recipient.viewed_count = recipient.viewed_count + 1
@@ -186,6 +186,6 @@ class SharedSpaceReferenceView(RESTDispatch):
 
             recipient.save()
         else:
-            return JSONResponse("{error: 'spot mismatch'}", status=401)
+            return JSONResponse({'error': 'spot mismatch'}, status=401)
 
         return JSONResponse(True)
