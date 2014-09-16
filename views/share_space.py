@@ -130,14 +130,15 @@ class ShareSpaceView(RESTDispatch):
                 subject = json_values['subject'] if 'subject' in json_values else subject_template.render(context).rstrip()
                 text_content = text_template.render(context)
                 html_content = html_template.render(context)
-                from_email = getattr(settings, 'SPACESCOUT_SUGGEST_FROM', 'spacescout+noreply@uw.edu')
+
+                from_email = getattr(settings, 'SPACESCOUT_SUGGEST_FROM', None)
+                if not from_email:
+                    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'spacescout+noreply@uw.edu')
     
                 headers = {}
                 if send_from:
-                    headers['Sender'] = getattr(settings, 'SPACESCOUT_SUGGEST_FROM', 'spacescout+noreply@uw.edu')
+                    headers['Sender'] = from_email
                     from_email = send_from
-                else:
-                    from_email = getattr(settings, 'SPACESCOUT_SUGGEST_FROM', 'spacescout+noreply@uw.edu')
 
                 msg = EmailMultiAlternatives(subject, text_content, from_email, [to], headers=headers)
                 msg.attach_alternative(html_content, "text/html")
