@@ -87,21 +87,26 @@ class UnpublishedReviewsView(RESTDispatch):
         data = json.loads(request.body)
         user = self._get_user(request)
 
-        review = SpaceReview.objects.get(id=data["review_id"])
-        review.review = data['review']
-        review.published_by = user
-        if data['publish']:
-            review.date_published = timezone.now()
-
-        review.is_published = data['publish']
-        if "delete" in data:
-            review.is_deleted = data['delete']
-
-        review.save()
-        review.space.update_rating()
-
-        # To clear the cache.
-        review.space.save()
+        review = SpaceReview.objects.get(pk=data["review_id"])
+        update_review(review, user, data)
 
         return JSONResponse('')
+
+def update_review(review, user, data):
+    """ Actions performed for every change to a review. """
+    review.review = data['review']
+    review.published_by = user
+    if data['publish']:
+        review.date_published = timezone.now()
+
+    review.is_published = data['publish']
+    if "delete" in data:
+        review.is_deleted = data['delete']
+
+    review.save()
+    review.space.update_rating()
+
+    # To clear the cache.
+    review.space.save()
+
 
