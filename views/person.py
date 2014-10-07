@@ -31,7 +31,9 @@ class PersonView(RESTDispatch):
             "email": "",
         }
 
-        if hasattr(settings, "USER_EMAIL_DOMAIN"):
+        if user.email:
+            data["email"] = user.email
+        elif hasattr(settings, "USER_EMAIL_DOMAIN"):
             data["email"] = user.username + "@" + settings.USER_EMAIL_DOMAIN
 
         return JSONResponse(data)
