@@ -33,13 +33,16 @@ from spotseeker_server.models import TrustedOAuthClient
 def authenticate_application(*args, **kwargs):
     request = args[1]
     try:
-        oauth_request = get_oauth_request(request)
-        consumer = store.get_consumer(request, oauth_request,
-                                      oauth_request['oauth_consumer_key'])
-        verify_oauth_request(request, oauth_request, consumer)
-
+        consumer, oauth_request = _get_consumer(request)
         request.META['SS_OAUTH_CONSUMER_NAME'] = consumer.name
         request.META['SS_OAUTH_CONSUMER_PK'] = consumer.pk
+
+        try:
+            user = _get_user(request, consumer, oauth_request)
+        except:
+            pass
+        else:
+            request.META['SS_OAUTH_USER'] = user
 
         return
     except Exception as e:
@@ -51,29 +54,11 @@ def authenticate_application(*args, **kwargs):
 def authenticate_user(*args, **kwargs):
     request = args[1]
     try:
-        oauth_request = get_oauth_request(request)
-        consumer = store.get_consumer(request, oauth_request,
-                                      oauth_request['oauth_consumer_key'])
-        verify_oauth_request(request, oauth_request, consumer)
-
-        # Allow a trusted client to either give us a user via header, or do the
-        # 3-legged oauth
-        user = None
-        try:
-            trusted_client = TrustedOAuthClient.objects.get(consumer=consumer)
-            if trusted_client and trusted_client.is_trusted:
-                user = request.META["HTTP_XOAUTH_USER"]
-        except Exception as e:
-            pass
-
-
-        if not user:
-            access_token = store.get_access_token(request, oauth_request, consumer, oauth_request[u'oauth_token'])
-            user = store.get_user_for_access_token(request, oauth_request, access_token).username
-
-
+        consumer, oauth_request = _get_consumer(request)
         request.META['SS_OAUTH_CONSUMER_NAME'] = consumer.name
         request.META['SS_OAUTH_CONSUMER_PK'] = consumer.pk
+
+        user = _get_user(request, consumer, oauth_request)
         request.META['SS_OAUTH_USER'] = user
 
         return
@@ -81,3 +66,31 @@ def authenticate_user(*args, **kwargs):
         response = HttpResponse("Error authorizing application")
         response.status_code = 401
         return response
+
+def _get_consumer(request):
+    """ Get, validate, and return the consumer info from the request. """
+    oauth_request = get_oauth_request(request)
+    consumer = store.get_consumer(request, oauth_request,
+                                  oauth_request['oauth_consumer_key'])
+    verify_oauth_request(request, oauth_request, consumer)
+
+    return consumer, oauth_request
+
+def _get_user(request, consumer, oauth_request):
+    """
+    Get and validate the user from the oauth request. This will use the XOAUTH_USER header
+    if it is a trusted consumer, and the 3-legged oauth if not.
+    """
+    user = None
+    try:
+        trusted_client = TrustedOAuthClient.objects.get(consumer=consumer)
+        if trusted_client and trusted_client.is_trusted:
+            user = request.META["HTTP_XOAUTH_USER"]
+    except Exception as e:
+        pass
+
+    if not user:
+        access_token = store.get_access_token(request, oauth_request, consumer, oauth_request[u'oauth_token'])
+        user = store.get_user_for_access_token(request, oauth_request, access_token).username
+
+    return user
