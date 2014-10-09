@@ -47,7 +47,6 @@ UIUC_REQUIRE_EDUTYPE = 'uiuc_require_edutype'
 
 class Filter(SearchFilter):
     keys = set((
-        'eppn',
         'extended_info:food_allowed',
         ))
 
@@ -65,6 +64,9 @@ class Filter(SearchFilter):
 
                 self.has_valid_search_param = True
 
+        if self.request.META.get('SS_OAUTH_USER', None):
+            self.has_valid_search_param = True
+
         return query
 
     def filter_results(self, spots):
@@ -76,8 +78,8 @@ class Filter(SearchFilter):
                 info
         """
 
-        eppn = self.request.GET.get('eppn')
-        if not eppn:
+        username = self.request.META.get('SS_OAUTH_USER', None)
+        if not username:
             LOGGER.info("User is not logged in. Show all spots.")
             result = spots
         else:
@@ -85,8 +87,13 @@ class Filter(SearchFilter):
             LOGGER.info("User is logged in. Show only spots they may access.")
 
             result = set()
-            full_address = get_res_street_address(eppn)
-            edutypes = get_edu_types(eppn)
+            try:
+                full_address = get_res_street_address(username)
+                edutypes = get_edu_types(username)
+            except:
+                LOGGER.exception("Cannot get LDAP information")
+                return spots
+
             for spot in spots: 
                 add_spot = True
 

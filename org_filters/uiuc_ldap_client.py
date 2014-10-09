@@ -140,19 +140,19 @@ def get_ldap_client():
 
 #---------------------------------------------------------------------------------------------------
 
-def get_edu_types(eppn):
+def get_edu_types(username):
     '''Return the uiucEduType values as a set'''
-    raw_data = get_person_ad_data(eppn)
+    raw_data = get_person_ad_data(username)
     if raw_data is not None and 'uiucEduType' in raw_data:
         return set(raw_data['uiucEduType'])
     else:
         return set()
 
-def get_res_street_address(eppn):
+def get_res_street_address(username):
     '''Return the Residence Hall street address 
     for the student, if they have one.'''
     full_address = ''
-    raw_data = get_person_ad_data(eppn)
+    raw_data = get_person_ad_data(username)
     if raw_data:
         address_keys = [
                  'uiucEduResHallAddressLine1',
@@ -163,26 +163,25 @@ def get_res_street_address(eppn):
             full_address += raw_data.get(key, [''])[0]
     return full_address
 
-def get_person_ad_data(eppn):
+def get_person_ad_data(username):
     '''
         Get needed LDAP information
     '''
 	
-    if eppn is None or len(eppn) <= 0 or len(eppn[0]) <= 0:
+    if username is None or len(username) <= 0 or len(username[0]) <= 0:
         # NetID does not actually exist - proceed no further!
         return None
 
-    cache_key = "uiuc_ldap_client:get_person_ad_data:{0}".format(eppn)
+    cache_key = "uiuc_ldap_client:get_person_ad_data:{0}".format(username)
     results = cache.get(cache_key)
     if results is not None:
-        LOGGER.debug("Using cached search for %s", eppn)
+        LOGGER.debug("Using cached search for %s", username)
         return results
 
     LOGGER.debug("Get AD connection.")
     ldap_conn = get_ldap_client()
     LOGGER.debug("AD connection: %s", str(ldap_conn))
 	
-    filter_template_string = '(eduPersonPrincipalName=$eppn)'
     return_attrs = [
             'uiucEduNetID',
             'uiucEduType',
@@ -194,10 +193,9 @@ def get_person_ad_data(eppn):
             'uiucEduResHallAddressZipCode',
             ]
 
-    filter_template = Template(filter_template_string)
-    ldap_filter = filter_template.substitute({
-        "eppn": ldap.filter.escape_filter_chars(eppn)
-        })
+    ldap_filter = '(sAMAccountName={username})'.format(
+        username=ldap.filter.escape_filter_chars(username)
+        )
     LOGGER.debug("Person filter is: %s", ldap_filter)
 
     ##Perform the query
