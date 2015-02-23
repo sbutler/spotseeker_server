@@ -8,4 +8,4 @@ South
 simplejson>=2.1
 
 cx_Oracle
--e hg+https://bitbucket.org/stephen-butler/django-oauth-plus@oracle-fix#egg=django-oauth-plus-2.2.4
+-e hg+https://bitbucket.org/stephen-butler/django-oauth-plus@oracle-fix#egg=django-oauth-plus-2.2.5
