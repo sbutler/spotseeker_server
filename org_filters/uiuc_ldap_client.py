@@ -193,7 +193,7 @@ def get_person_ad_data(username):
             'uiucEduResHallAddressZipCode',
             ]
 
-    ldap_filter = '(sAMAccountName={username})'.format(
+    ldap_filter = '(uiucEduNetID={username})'.format(
         username=ldap.filter.escape_filter_chars(username)
         )
     LOGGER.debug("Person filter is: %s", ldap_filter)
