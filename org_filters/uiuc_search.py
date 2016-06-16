@@ -6,7 +6,7 @@ All rights reserved.
 
 Developed by:       CITES Software Development Group
                     University of Illinois
-                    http://cites.illinois.edu                            
+                    http://cites.illinois.edu
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
@@ -22,7 +22,7 @@ the following conditions:
 	Neither the names of CITES Software Development Group,
 	University of Illinois, nor the names of its contributors may
 	be used to endorse or promote products derived from this
-	Software without specific prior written permission. 
+	Software without specific prior written permission.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
@@ -30,7 +30,7 @@ MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
 IN NO EVENT SHALL THE CONTRIBUTORS OR COPYRIGHT HOLDERS BE LIABLE FOR
 ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
 CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
-WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE SOFTWARE. 
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS WITH THE SOFTWARE.
 """
 import logging
 import re
@@ -48,6 +48,7 @@ UIUC_REQUIRE_EDUTYPE = 'uiuc_require_edutype'
 class Filter(SearchFilter):
     keys = set((
         'extended_info:food_allowed',
+        'extended_info:noise_level',
         ))
 
     def filter_query(self, query):
@@ -63,6 +64,48 @@ class Filter(SearchFilter):
                         )
 
                 self.has_valid_search_param = True
+
+        if 'extended_info:noise_level' in self.request.GET:
+            noise_levels = self.request.GET.getlist("extended_info:noise_level")
+
+            exclude_silent = True
+            exclude_quiet = True
+            exclude_moderate = True
+            exclude_variable = True
+
+            for level in noise_levels:
+                if "silent" == level:
+                    exclude_silent = False
+                if "quiet" == level:
+                    exclude_quiet = False
+                    exclude_variable = False
+                if "moderate" == level:
+                    exclude_moderate = False
+                    exclude_variable = False
+
+            if exclude_silent:
+                query = query.exclude(
+                        spotextendedinfo__key="noise_level",
+                        spotextendedinfo__value__iexact="silent"
+                        )
+
+            if exclude_quiet:
+                query = query.exclude(
+                        spotextendedinfo__key="noise_level",
+                        spotextendedinfo__value__iexact="quiet"
+                        )
+
+            if exclude_moderate:
+                query = query.exclude(
+                        spotextendedinfo__key="noise_level",
+                        spotextendedinfo__value__iexact="moderate"
+                        )
+
+            if exclude_variable:
+                query = query.exclude(
+                        spotextendedinfo__key="noise_level",
+                        spotextendedinfo__value__iexact="variable"
+                        )
 
         if self.request.META.get('SS_OAUTH_USER', None):
             self.has_valid_search_param = True
@@ -94,7 +137,7 @@ class Filter(SearchFilter):
                 LOGGER.exception("Cannot get LDAP information")
                 return spots
 
-            for spot in spots: 
+            for spot in spots:
                 add_spot = True
 
                 try:
@@ -133,4 +176,3 @@ class Filter(SearchFilter):
                     result.add(spot)
 
         return result
-
