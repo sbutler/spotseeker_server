@@ -15,7 +15,6 @@
 """
 
 from spotseeker_server.views.rest_dispatch import RESTDispatch, JSONResponse, RESTException
-from django.core.exceptions import ObjectDoesNotExist
 from django.core.mail import EmailMultiAlternatives
 from spotseeker_server.require_auth import user_auth_required, app_auth_required
 from spotseeker_server.models import Spot, SpotExtendedInfo
@@ -23,7 +22,9 @@ from spotseeker_server.models import SharedSpace, SharedSpaceRecipient
 from spotseeker_server.auth.oauth import authenticate_user
 from django.http import HttpResponse
 from django.views.decorators.cache import never_cache
+from django.core.exceptions import ValidationError
 from django.core.mail import send_mail
+from django.core.validators import validate_email
 from django.conf import settings
 from django.template.loader import get_template
 from django.template import Context
@@ -59,30 +60,32 @@ class ShareSpaceView(RESTDispatch):
         if type(raw_send_to) is not list:
             raw_send_to = [ raw_send_to ]
 
-        has_valid_to = False
         send_to = []
         for address in raw_send_to:
-            if '@' in address:
+            try:
+                validate_email(address)
                 send_to.append(address)
-                has_valid_to = True
+            except ValidationError:
+                pass
 
-        if not has_valid_to:
+        if len(send_to) <= 0:
             logger.error('Invalid To field:  %s' % (body))
             raise RESTException("Invalid 'To'", status_code=400)
 
-        send_from = json_values['from'] if 'from' in json_values else None
-        if send_from and '@' not in send_from:
-            logger.error('Invalid From field:  %s' % (body))
-            raise RESTException("Invalid 'from'", status_code=400)
+        send_from = json_values.get('from', None)
+        if send_from:
+            try:
+                validate_email(send_from)
+            except ValidationError:
+                logger.error('Invalid From field:  %s' % (body))
+                raise RESTException("Invalid 'from'", status_code=400)
 
-        comment = ''
-        if 'comment' in json_values:
-            comment = json_values['comment']
+        comment = json_values.get('comment', '')
 
         try:
-            share = SharedSpace.objects.get(space=spot,sender=send_from,user=user.username)
-        except ObjectDoesNotExist:
-            share = SharedSpace(space=spot,sender=send_from,user=user.username)
+            share = SharedSpace.objects.get(space=spot, sender=send_from, user=user.username)
+        except SharedSpace.DoesNotExist:
+            share = SharedSpace(space=spot, sender=send_from, user=user.username)
             share.save()
 
         for to in send_to:
@@ -97,17 +100,16 @@ class ShareSpaceView(RESTDispatch):
                 try:
                     recipient = SharedSpaceRecipient.objects.get(hash_key=hash_val)
                     recipient.shared_count = recipient.shared_count + 1
-                except ObjectDoesNotExist:
-                    recipient = SharedSpaceRecipient(shared_space=share,hash_key=hash_val,
-                                                    recipient=to,shared_count=1,viewed_count=0)
+                except SharedSpaceRecipient.DoesNotExist:
+                    recipient = SharedSpaceRecipient(shared_space=share, hash_key=hash_val,
+                                                    recipient=to, shared_count=1, viewed_count=0)
 
                 recipient.save()
 
-                location_description = None
                 try:
                     location_description = SpotExtendedInfo.objects.get(spot=spot, key='location_description').value
-                except ObjectDoesNotExist:
-                    pass
+                except SpotExtendedInfo.DoesNotExist:
+                    location_description = None
 
                 spottypes = spot.spottypes.all()
                 spottypes = ["server_%s" % x for x in spottypes]
@@ -127,17 +129,18 @@ class ShareSpaceView(RESTDispatch):
                 text_template = get_template('email/share_space/plain_text.txt')
                 html_template = get_template('email/share_space/html.html')
     
-                subject = json_values['subject'] if 'subject' in json_values else subject_template.render(context).rstrip()
+                subject = json_values.get('subject', subject_template.render(context).rstrip())
                 text_content = text_template.render(context)
                 html_content = html_template.render(context)
-                from_email = getattr(settings, 'SPACESCOUT_SUGGEST_FROM', 'spacescout+noreply@uw.edu')
+
+                from_email = getattr(settings, 'SPACESCOUT_SUGGEST_FROM', None)
+                if not from_email:
+                    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'spacescout+noreply@uw.edu')
     
                 headers = {}
                 if send_from:
-                    headers['Sender'] = getattr(settings, 'SPACESCOUT_SUGGEST_FROM', 'spacescout+noreply@uw.edu')
+                    headers['Sender'] = from_email
                     from_email = send_from
-                else:
-                    from_email = getattr(settings, 'SPACESCOUT_SUGGEST_FROM', 'spacescout+noreply@uw.edu')
 
                 msg = EmailMultiAlternatives(subject, text_content, from_email, [to], headers=headers)
                 msg.attach_alternative(html_content, "text/html")
@@ -171,8 +174,8 @@ class SharedSpaceReferenceView(RESTDispatch):
 
         try:
             recipient = SharedSpaceRecipient.objects.get(hash_key=json_values['hash'])
-        except ObjectDoesNotExist:
-            return JSONResponse("{error: 'shared spot not found'}", status=401)
+        except SharedSpaceRecipient.DoesNotExist:
+            return JSONResponse({'error': 'shared spot not found'}, status=401)
 
         if recipient.shared_space.space.pk == int(spot_id):
             recipient.viewed_count = recipient.viewed_count + 1
@@ -185,6 +188,6 @@ class SharedSpaceReferenceView(RESTDispatch):
 
             recipient.save()
         else:
-            return JSONResponse("{error: 'spot mismatch'}", status=401)
+            return JSONResponse({'error': 'spot mismatch'}, status=401)
 
         return JSONResponse(True)
