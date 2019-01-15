@@ -55,7 +55,7 @@ validated_ei = {
 }
 
 
-def _clean_html_a(name, value):
+def _clean_html_a(tag, name, value):
     """
     Clean the 'a' tag for an HTML field. This allows 'title',
     'target', and 'href's that point to http or https.
